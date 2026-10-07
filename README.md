@@ -6,6 +6,8 @@ Recorded boundaries often leave too little room inside for different agricultura
 
 Everything runs locally in your browser. Your files are never uploaded anywhere.
 
+This process can be completed using free software such as QGIS and built in plugins.  This webtool is just meant to automate the step by step process in those softwares in a self-contained system to increase efficiency.
+
 **Live tool:** `https://<your-username>.github.io/<repository-name>/`
 
 ## Features
