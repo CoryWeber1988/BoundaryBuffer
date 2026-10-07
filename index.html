@@ -1,0 +1,258 @@
+<!--
+Field Boundary Buffer
+Copyright (C) 2026 Cory Weber (Cory Weber Ag Tech)
+Built with Claude (Anthropic).
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program (see LICENSE).
+If not, see <https://www.gnu.org/licenses/>.
+-->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Field Boundary Buffer</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#eef1ee;--pn:#fff;--ink:#17261d;--mut:#5d6d63;--ln:#d3dbd5;--ac:#2d6a4f;--acx:#fff;--o:#1e88e5;--a:#f57c00}
+[data-theme=dark]{--bg:#121916;--pn:#1b2420;--ink:#e3ebe5;--mut:#9aaba1;--ln:#2f3b35;--ac:#74c69d;--acx:#0d1511}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+h1,h2{font-family:Georgia,'Times New Roman',serif;margin:0 0 .5em}
+.screen{min-height:100%;display:grid;place-items:center;padding:20px}
+.card{max-width:680px;background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:26px}
+.card h1{font-size:28px}.card p{margin:.6em 0}
+.disc{border-left:4px solid var(--a);background:var(--bg);padding:10px 14px;border-radius:4px;font-size:13px}
+button,select,input{font:inherit;color:var(--ink)}
+button{background:var(--pn);border:1px solid var(--ln);border-radius:6px;padding:7px 12px;cursor:pointer}
+a.btn{background:var(--pn);border:1px solid var(--ln);border-radius:6px;padding:7px 12px;color:var(--ink);text-decoration:none}
+button.pri{background:var(--ac);color:var(--acx);border-color:var(--ac);font-weight:600}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+input,select{background:var(--bg);border:1px solid var(--ln);border-radius:6px;padding:6px 8px;max-width:100%}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+#app{height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
+header{display:flex;gap:10px;align-items:center;padding:8px 12px;background:var(--pn);border-bottom:1px solid var(--ln)}
+header b{flex:1;font-family:Georgia,serif;font-size:17px}
+#main{flex:1;display:flex;min-height:0;position:relative}
+#side{width:370px;flex:none;overflow:auto;background:var(--pn);border-right:1px solid var(--ln);padding:8px 12px calc(14px + env(safe-area-inset-bottom,0))}
+#map{flex:1;min-width:0}
+details{border-bottom:1px solid var(--ln);padding:6px 0}summary{cursor:pointer;font-weight:600;padding:4px 0}
+.mut{color:var(--mut);font-size:12px}.warn{color:var(--a);font-size:12px}
+.tot{display:grid;grid-template-columns:1fr auto;gap:2px 10px;margin:6px 0}.tot b:nth-child(even){text-align:right}
+.big{font-size:17px}
+#list{max-height:240px;overflow:auto;border:1px solid var(--ln);border-radius:6px}
+.it{display:flex;gap:6px;align-items:center;padding:5px 8px;border-bottom:1px solid var(--ln);cursor:pointer}
+.it span{flex:1}.it select{padding:2px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:6px;z-index:3000;max-width:90vw}
+.drop{border:2px dashed var(--ln);border-radius:8px;padding:12px;text-align:center}
+@media(max-width:760px){#side{position:absolute;z-index:1000;top:0;bottom:0;left:0;width:min(92vw,380px);box-shadow:4px 0 16px #0005}}
+</style>
+</head>
+<body>
+<div id="land" class="screen"><div class="card">
+<h1>Field Boundary Buffer</h1>
+<p>This tool takes an existing field boundary and physically grows or shrinks it by a distance you choose, producing a new, adjusted boundary.</p>
+<p>A recorded boundary often leaves too little room inside it for different machines, because equipment has physical dimensions outside its working area (turning, headlands, trailing implements, obstacles). An adjusted polygon, smaller or larger than the original, lets you plan for that clearance. Interior polygons (obstacles, wetlands, buildings) are handled together with the exterior boundary.</p>
+<p class="mut">Note: the original boundary's accuracy may not be perfectly preserved by this process. Check any attributes in your file that may indicate the source recording GPS accuracy (for example fix type, HDOP, or differential correction source).</p>
+<div class="disc"><b>Disclaimer.</b> You are responsible for the accuracy of any output file created with this tool and for verifying that it does not cross any obstacles. Using this tool means you assume all responsibility and liability for its accuracy and for any issues that occur from using the tool and its exported files. The developer assumes and accepts no responsibility or liability.</div>
+<div class="row"><b>Units:</b>
+<label><input type="radio" name="u" value="imp" checked> Imperial (acres, feet/inches)</label>
+<label><input type="radio" name="u" value="met"> Metric (hectares, metres/cm)</label></div>
+<div class="row"><button class="pri" id="yes">I accept</button><button id="no">I do not accept</button></div>
+<p class="mut">Free software under the <a href="LICENSE" target="_blank" rel="noopener">GNU GPL v3</a>, provided without warranty. <a href="help.html" target="_blank" rel="noopener">Read the help guide</a> before first use.</p>
+</div></div>
+<div id="bye" class="screen" hidden><div class="card"><h1>Thank you for visiting</h1><p>Goodbye.</p></div></div>
+
+<div id="app" hidden>
+<header><button id="tg" aria-label="Show or hide sidebar">☰ Panel</button><b>Field Boundary Buffer</b><a class="btn" href="help.html" target="_blank" rel="noopener">Help</a><button id="rsa">Reset session</button><button id="th">Dark / Light</button></header>
+<div id="main">
+<aside id="side">
+<details open><summary>1. Load boundary</summary>
+<div class="drop"><input type="file" id="fi" multiple accept=".zip,.shp,.shx,.dbf,.prj,.cpg,.kml,.kmz"><div class="mut">Shapefile (.zip, or select .shp .shx .dbf .prj together), KML or KMZ. You can also drop files on the map.</div></div>
+<div class="mut" id="crsStat">No file loaded.</div>
+<div class="row"><input id="mc" placeholder="Assign source EPSG or proj4" style="flex:1"><button id="mcb">Assign</button></div>
+<button class="rs" data-r="1">Reset step 1 (unload file)</button>
+</details>
+<details open><summary>2. Units</summary>
+<div class="row"><label><input type="radio" name="u" value="imp" checked> Imperial</label><label><input type="radio" name="u" value="met"> Metric</label></div>
+<button class="rs" data-r="2">Reset step 2 (imperial)</button>
+</details>
+<details open><summary>3. Polygons and area</summary>
+<div class="tot"><span>Exterior total</span><b id="te">-</b><span>Interior total (subtracted)</span><b id="ti">-</b><span class="big">Net area (original)</span><b class="big" id="tn">-</b><span class="big" style="color:var(--a)">Net area (adjusted)</span><b class="big" id="ta" style="color:var(--a)">-</b><span>Change</span><b id="tc">-</b></div>
+<div id="list"><div class="it mut">Nothing loaded.</div></div>
+<div class="mut">Polygons inside another are set to interior automatically; change any with the drop-down.</div>
+<button class="rs" data-r="3">Reset step 3 (automatic types)</button>
+</details>
+<details open><summary>4. Buffer</summary>
+<div class="row"><input id="bv" type="number" step="any" value="-10" style="width:90px"><select id="bu"><option>ft</option><option>in</option></select></div>
+<div class="mut">Positive grows the field outline (interior polygons shrink). Negative shrinks the field (interior polygons grow).</div>
+<div class="row"><label>Buffer projection <select id="bc"></select></label><input id="bcc" placeholder="EPSG code" size="8" hidden></div>
+<div class="warn" id="bn"></div><button id="rec" hidden>Use recommended UTM</button>
+<div class="row"><button class="pri" id="ap">Apply buffer</button><button id="cl">Clear</button></div>
+<button class="rs" data-r="4">Reset step 4 (defaults)</button>
+</details>
+<details open><summary>5. Export</summary>
+<div class="row"><input id="fn" placeholder="File name" value="boundary" style="flex:1"></div>
+<label><input type="checkbox" id="apn" checked> Append buffer size to file name</label>
+<div class="row"><label>Format <select id="fm"><option value="shp">Shapefile (.zip)</option><option value="kml">KML</option><option value="kmz">KMZ</option><option value="gj">GeoJSON</option><option value="iso">ISOXML (.zip)</option></select></label></div>
+<div class="row"><label>Output projection <select id="oc"></select></label><input id="occ" placeholder="EPSG code" size="8" hidden></div>
+<div class="mut">KML, KMZ and ISOXML are always WGS 84. Each feature keeps its original attributes plus a Buffer_&lt;unit&gt; column.</div>
+<button class="pri" id="ex">Export adjusted boundary</button>
+<button class="rs" data-r="5">Reset step 5 (defaults)</button>
+</details>
+</aside>
+<div id="map"></div>
+</div></div>
+<div id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsts/2.11.0/jsts.min.js"></script>
+<script>
+const $=s=>document.querySelector(s),F={ft:.3048,in:.0254,cm:.01,m:1};
+let srcName='boundary',U='imp',items=[],adj=null,raw=null,crsSrc=null,buf={m:0},map,Lo,La;
+const msg=(t,e)=>{const x=$('#toast');x.textContent=t;x.style.background=e?'#b3261e':'';x.style.color=e?'#fff':'';x.hidden=false;clearTimeout(msg.t);msg.t=setTimeout(()=>x.hidden=true,4500)};
+try{document.documentElement.dataset.theme=localStorage.th||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')}catch(e){}
+$('#th').onclick=()=>{const d=document.documentElement,n=d.dataset.theme=='dark'?'light':'dark';d.dataset.theme=n;try{localStorage.th=n}catch(e){}};
+// ---- landing
+$('#no').onclick=()=>{$('#land').hidden=true;$('#bye').hidden=false};
+$('#yes').onclick=()=>{$('#land').hidden=true;$('#app').hidden=false;initMap();if(innerWidth<760)$('#side').hidden=true;setTimeout(()=>map.invalidateSize(),50)};
+$('#tg').onclick=()=>{const s=$('#side');s.hidden=!s.hidden;setTimeout(()=>map.invalidateSize(),50)};
+document.querySelectorAll('input[name=u]').forEach(r=>r.onchange=e=>{if(e.target.value!=U)setU(e.target.value)});
+function setU(u){const bu=$('#bu'),ou=bu.value,v=parseFloat($('#bv').value);U=u;document.querySelectorAll('input[name=u]').forEach(r=>r.checked=r.value==u);
+ const nu=(u=='imp'?{m:'ft',cm:'in'}:{ft:'m',in:'cm'})[ou];bu.innerHTML=(u=='imp'?['ft','in']:['m','cm']).map(x=>`<option>${x}</option>`).join('');bu.value=nu;
+ if(!isNaN(v))$('#bv').value=+(v*F[ou]/F[nu]).toFixed(4);refresh()}
+const fa=m=>U=='imp'?(m/4046.8564224).toFixed(2)+' ac':(m/1e4).toFixed(2)+' ha';
+// ---- map
+function initMap(){if(map)return;
+ const E=(n,x)=>L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${n}/MapServer/tile/{z}/{y}/{x}`,{maxZoom:20,maxNativeZoom:x||18,attribution:'Esri'});
+ const base={'Esri World Imagery':E('World_Imagery'),'Esri Streets':E('World_Street_Map'),'Esri Topographic':E('World_Topo_Map'),
+ 'OpenStreetMap':L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,maxNativeZoom:19,attribution:'© OpenStreetMap'}),
+ 'OpenTopoMap':L.tileLayer('https://tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:20,maxNativeZoom:17,attribution:'© OpenTopoMap'}),
+ 'USGS Imagery (US)':L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:16,attribution:'USGS'})};
+ map=L.map('map',{layers:[base['Esri World Imagery']]}).setView([44,-80],6);Lo=L.featureGroup().addTo(map);La=L.featureGroup().addTo(map);
+ L.control.layers(base,{'Original boundary':Lo,'Adjusted boundary':La,'Place labels':E('Reference/World_Boundaries_and_Places')},{collapsed:true}).addTo(map);L.control.scale().addTo(map);
+ const m=$('#map');m.ondragover=e=>e.preventDefault();m.ondrop=e=>{e.preventDefault();loadFiles(e.dataTransfer.files)}}
+// ---- readers
+function parseShp(b){const v=new DataView(b),out=[];let o=100;while(o+8<=v.byteLength){const len=v.getInt32(o+4)*2,c=o+8,t=v.getInt32(c,true),rings=[];
+ if([5,15,25].includes(t)){const np=v.getInt32(c+36,true),n=v.getInt32(c+40,true),pp=c+44,pt=pp+4*np,P=[];for(let i=0;i<np;i++)P.push(v.getInt32(pp+4*i,true));P.push(n);
+ for(let i=0;i<np;i++){const r=[];for(let k=P[i];k<P[i+1];k++)r.push([v.getFloat64(pt+16*k,true),v.getFloat64(pt+16*k+8,true)]);rings.push(r)}}out.push(rings);o=c+len}return out}
+function parseDbf(b,cpg){let en='utf-8';if(cpg){en=cpg.trim();if(/^\d+$/.test(en))en='windows-'+en}let dec;try{dec=new TextDecoder(en)}catch(e){dec=new TextDecoder()}
+ const v=new DataView(b),u=new Uint8Array(b),n=v.getUint32(4,true),hl=v.getUint16(8,true),rl=v.getUint16(10,true),fs=[];
+ for(let o=32;o<hl&&u[o]!==13;o+=32)fs.push({n:dec.decode(u.slice(o,o+11)).replace(/\0.*$/,''),t:String.fromCharCode(u[o+11]),l:u[o+16]});
+ const rows=[];for(let r=0;r<n;r++){let p=hl+r*rl+1;const a={};for(const f of fs){const s=dec.decode(u.slice(p,p+f.l)).trim();a[f.n]=(f.t=='N'||f.t=='F')?(s===''||isNaN(s)?null:parseFloat(s)):s;p+=f.l}rows.push(a)}return rows}
+function parseKml(txt,out){const d=new DOMParser().parseFromString(txt,'text/xml'),tx=(e,t)=>{const x=e.getElementsByTagName(t)[0];return x?x.textContent.trim():''};
+ [...d.getElementsByTagName('Placemark')].forEach(pm=>{const a={},nm=tx(pm,'name'),ds=tx(pm,'description');if(nm)a.Name=nm;if(ds)a.Description=ds;
+ [...pm.getElementsByTagName('Data')].forEach(x=>a[x.getAttribute('name')]=tx(x,'value'));[...pm.getElementsByTagName('SimpleData')].forEach(x=>a[x.getAttribute('name')]=x.textContent.trim());
+ const rings=[];[...pm.getElementsByTagName('Polygon')].forEach(pg=>[...pg.getElementsByTagName('coordinates')].forEach(c=>{const r=c.textContent.trim().split(/\s+/).map(s=>s.split(',').map(Number)).filter(p=>p.length>=2&&!isNaN(p[0])&&!isNaN(p[1])).map(p=>[p[0],p[1]]);if(r.length>=3)rings.push(r)}));
+ if(rings.length)out.push({fid:out.length,attrs:a,rings})})}
+$('#fi').onchange=async e=>{await loadFiles(e.target.files);e.target.value=''};
+// ---- resets (loading a new file keeps buffer, projection and export settings)
+function rs1(){raw=null;crsSrc=null;items=[];adj=null;srcName='boundary';$('#crsStat').textContent='No file loaded.';$('#mc').value='';$('#fi').value='';draw();refresh();bnote()}
+function rs2(){if(U!='imp')setU('imp')}
+function rs3(){items.forEach(i=>i.type=i.auto);adj=null;draw();refresh()}
+function rs4(){adj=null;$('#bv').value=-10;$('#bu').value=U=='imp'?'ft':'m';$('#bcc').value='';if(items.length)$('#bc').value=$('#rec').dataset.v;bnote();draw();refresh()}
+function rs5(){$('#fn').value=srcName;$('#apn').checked=true;$('#fm').value='shp';$('#occ').value='';if($('#oc').options.length)$('#oc').value='EPSG:4326';$('#occ').hidden=true}
+const RS={1:rs1,2:rs2,3:rs3,4:rs4,5:rs5};
+document.querySelectorAll('.rs').forEach(b=>b.onclick=()=>RS[b.dataset.r]());
+$('#rsa').onclick=()=>{if(!confirm('Reset the whole session? The loaded file and all settings will be cleared.'))return;rs1();rs2();rs4();rs5();$('#bc').innerHTML=$('#oc').innerHTML='';bnote();$('#rec').hidden=true;$('#fn').value='boundary';map.setView([44,-80],6);msg('Session reset')};
+async function loadFiles(list){try{const fl=[];for(const f of list){if(/\.(zip|kmz)$/i.test(f.name)){const z=await JSZip.loadAsync(f);for(const e of Object.values(z.files)){if(e.dir||/__MACOSX/i.test(e.name))continue;fl.push({name:e.name.split('/').pop(),get:()=>e.async('arraybuffer')})}}else fl.push({name:f.name,get:()=>f.arrayBuffer()})}
+ const g={},kml=[];fl.forEach(f=>{const m=f.name.match(/^(.*)\.(\w+)$/);if(!m)return;const e=m[2].toLowerCase(),b=m[1].toLowerCase();if(e=='kml')kml.push(f);else if(['shp','dbf','prj','cpg'].includes(e)){g[b]=g[b]||{n:m[1]};g[b][e]=f}});
+ const R=[];let prj=null,name=null,isK=false;const T=async f=>new TextDecoder().decode(await f.get());
+ for(const b in g){const o=g[b];if(!o.shp)continue;name=name||o.n;const rs=parseShp(await o.shp.get()),at=o.dbf?parseDbf(await o.dbf.get(),o.cpg?await T(o.cpg):null):[];rs.forEach((rings,i)=>R.push({fid:R.length,attrs:at[i]||{},rings}));if(o.prj&&!prj)prj=await T(o.prj)}
+ for(const k of kml){name=name||k.name.replace(/\.kml$/i,'');isK=true;parseKml(await T(k),R)}
+ if(!R.length)throw Error('No polygons found. For shapefiles select .shp with .dbf and .prj, or a .zip.');
+ raw=R;srcName=name||'boundary';$('#fn').value=srcName;let c=null,lab;
+ if(isK&&!prj){c='EPSG:4326';lab='KML/KMZ: WGS 84'}
+ else if(prj){try{proj4(prj);c=prj;lab='Detected from .prj: '+((prj.match(/"([^"]+)"/)||[])[1]||'custom')}catch(e){lab='Could not read the .prj. Assign a projection below.'}}
+ else{const v=R.flatMap(f=>f.rings.flat());if(v.every(p=>Math.abs(p[0])<=180&&Math.abs(p[1])<=90)){c='EPSG:4326';lab='No .prj: coordinates look like lon/lat, assumed WGS 84'}else lab='No .prj found. Assign a projection below.'}
+ setCrs(c,lab)}catch(e){msg(e.message,1)}}
+function crsDef(s){s=String(s).trim();if(/^(epsg:)?\d+$/i.test(s)){const c=+s.replace(/\D/g,'');
+ if(c==4326)return'EPSG:4326';if(c==3857||c==900913)return'EPSG:3857';
+ if(c>=32601&&c<=32660)return`+proj=utm +zone=${c-32600} +datum=WGS84 +units=m +no_defs`;
+ if(c>=32701&&c<=32760)return`+proj=utm +zone=${c-32700} +south +datum=WGS84 +units=m +no_defs`;
+ if(c>=26901&&c<=26923)return`+proj=utm +zone=${c-26900} +datum=NAD83 +units=m +no_defs`;
+ if(c>=2955&&c<=2962)return`+proj=utm +zone=${c-2944} +datum=NAD83 +units=m +no_defs`;
+ throw Error('EPSG:'+c+' not built in. Paste a proj4 string instead.')}return s}
+$('#mcb').onclick=()=>{if(!raw)return msg('Load a file first',1);try{const d=crsDef($('#mc').value);proj4(d);setCrs(d,'Manually assigned: '+$('#mc').value)}catch(e){msg(e.message||'Invalid projection',1)}};
+function setCrs(c,lab){crsSrc=c;$('#crsStat').textContent=lab;adj=null;if(!c){items=[];draw();refresh();return msg('Projection needed',1)}build()}
+// ---- polygons
+function rArea(r){const R=6378137,d=Math.PI/180;let s=0;for(let i=0;i<r.length-1;i++)s+=(r[i+1][0]-r[i][0])*d*(2+Math.sin(r[i][1]*d)+Math.sin(r[i+1][1]*d));return Math.abs(s*R*R/2)}
+const bb=r=>r.reduce((b,p)=>[Math.min(b[0],p[0]),Math.min(b[1],p[1]),Math.max(b[2],p[0]),Math.max(b[3],p[1])],[1e9,1e9,-1e9,-1e9]);
+function pip(p,r){let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const a=r[i],b=r[j];if((a[1]>p[1])!=(b[1]>p[1])&&p[0]<(b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
+function inside(a,b){const n=a.ll.length,s=Math.max(1,Math.floor(n/20));let k=0,t=0;for(let i=0;i<n-1;i+=s){t++;if(pip(a.ll[i],b.ll))k++}return k/t>.6}
+function build(){const t=crsSrc=='EPSG:4326'?null:proj4(crsSrc,'EPSG:4326');items=[];
+ raw.forEach(f=>f.rings.forEach(r=>{const ll=t?r.map(p=>t.forward([p[0],p[1]])):r.map(p=>[p[0],p[1]]);if(ll.length<3)return;const a=ll[0],z=ll[ll.length-1];if(a[0]!=z[0]||a[1]!=z[1])ll.push([a[0],a[1]]);items.push({id:items.length+1,fid:f.fid,attrs:f.attrs,ll})}));
+ if(!items.length||items.some(i=>i.ll.some(p=>!isFinite(p[0])||!isFinite(p[1])||Math.abs(p[1])>90))){items=[];draw();refresh();return msg('Coordinates do not fit this projection. Assign another.',1)}
+ items.forEach(i=>{i.bb=bb(i.ll);i.area=rArea(i.ll)});
+ items.forEach(a=>{a.cont=items.filter(b=>b!==a&&b.area>a.area&&b.bb[0]<=a.bb[0]&&b.bb[1]<=a.bb[1]&&b.bb[2]>=a.bb[2]&&b.bb[3]>=a.bb[3]&&inside(a,b));a.type=a.auto=a.cont.length%2?'int':'ext'});
+ fillCrs();draw();refresh();map.fitBounds(Lo.getBounds(),{padding:[30,30]});if(innerWidth<760)$('#side').hidden=true;map.invalidateSize();msg(items.length+' polygons loaded')}
+function groups(){const g=new Map(items.filter(i=>i.type=='ext').map(e=>[e,{ext:e,holes:[]}]));
+ items.filter(i=>i.type=='int').forEach(h=>{h.parent=h.cont.filter(c=>c.type=='ext').sort((a,b)=>a.area-b.area)[0];if(h.parent)g.get(h.parent).holes.push(h)});return[...g.values()]}
+const ll2=r=>r.map(p=>[p[1],p[0]]);
+function draw(){Lo.clearLayers();La.clearLayers();items.forEach(i=>L.polygon(ll2(i.ll),{color:'#1e88e5',weight:2.5,dashArray:i.type=='int'?'6 5':null,fillOpacity:.05}).bindTooltip(`Polygon ${i.id} (${i.type=='int'?'interior':'exterior'}) ${fa(i.area)}`).addTo(Lo));
+ if(adj)adj.forEach(a=>L.polygon(a.rings.map(ll2),{color:'#f57c00',weight:2.5,fillOpacity:.15}).addTo(La))}
+function refresh(){const G=items.length?groups():[];let e=0,n=0;G.forEach(g=>{e+=g.ext.area;g.holes.forEach(h=>n+=h.area)});
+ $('#te').textContent=items.length?fa(e):'-';$('#ti').textContent=items.length?fa(n):'-';$('#tn').textContent=items.length?fa(e-n):'-';
+ if(adj){const a=adj.reduce((s,x)=>s+rArea(x.rings[0])-x.rings.slice(1).reduce((q,r)=>q+rArea(r),0),0);$('#ta').textContent=fa(a);$('#tc').textContent=(a>=e-n?'+':'-')+fa(Math.abs(a-(e-n)))+' ('+((a/(e-n)-1)*100).toFixed(1)+'%)'}else{$('#ta').textContent='-';$('#tc').textContent='-'}
+ const L_=$('#list');L_.innerHTML=items.length?'':'<div class="it mut">Nothing loaded.</div>';
+ items.forEach(i=>{const d=document.createElement('div');d.className='it';d.innerHTML=`<span>#${i.id} ${fa(i.area)}${i.type=='int'&&!i.parent?' <em class="warn">(no parent, ignored)</em>':''}</span><select><option value="ext">Exterior</option><option value="int">Interior</option></select>`;
+ const s=d.querySelector('select');s.value=i.type;s.onclick=ev=>ev.stopPropagation();s.onchange=()=>{i.type=s.value;adj=null;draw();refresh()};d.onclick=()=>map.fitBounds(L.polygon(ll2(i.ll)).getBounds(),{padding:[40,40]});L_.append(d)})}
+// ---- projections
+function ctr(){const b=items.reduce((b,i)=>[Math.min(b[0],i.bb[0]),Math.min(b[1],i.bb[1]),Math.max(b[2],i.bb[2]),Math.max(b[3],i.bb[3])],[1e9,1e9,-1e9,-1e9]);return[(b[0]+b[2])/2,(b[1]+b[3])/2]}
+function fillCrs(){const[lon,lat]=ctr(),z=Math.floor((lon+180)/6)+1,n=lat>=0,u=n?32600+z:32700+z;
+ const mk=(sel,out)=>{const old=sel.value,o=[];if(out)o.push(['EPSG:4326','WGS 84 (EPSG:4326)']);o.push(['EPSG:3857','Web Mercator (EPSG:3857)'],['EPSG:'+u,`UTM ${z}${n?'N':'S'} WGS 84, recommended (EPSG:${u})`]);
+  if(n&&z<=23)o.push(['EPSG:'+(26900+z),`UTM ${z}N NAD83 (EPSG:${26900+z})`]);o.push(['custom','Custom EPSG...']);sel.innerHTML=o.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('');sel.value=o.some(x=>x[0]==old)?old:(out?'EPSG:4326':'EPSG:'+u)};
+ mk($('#bc'),0);mk($('#oc'),1);$('#rec').dataset.v='EPSG:'+u;bnote()}
+function bnote(){const c=$('#bc').value,lat=ctr()[1];$('#bcc').hidden=c!='custom';$('#rec').hidden=c!='EPSG:3857';
+ $('#bn').textContent=c=='EPSG:3857'&&items.length?`Web Mercator stretches distances by about ${((1/Math.cos(lat*Math.PI/180)-1)*100).toFixed(0)}% at this latitude, so the real-world buffer will be about ${((1-Math.cos(lat*Math.PI/180))*100).toFixed(0)}% smaller than entered. A UTM zone is accurate to well under 0.1%.`:''}
+$('#bc').onchange=bnote;$('#oc').onchange=()=>$('#occ').hidden=$('#oc').value!='custom';$('#rec').onclick=()=>{$('#bc').value=$('#rec').dataset.v;bnote()};
+const getCode=(s,c)=>s.value=='custom'?'EPSG:'+c.value.replace(/\D/g,''):s.value;
+// ---- buffer
+$('#ap').onclick=()=>{try{if(!items.length)return msg('Load a boundary first',1);const v=parseFloat($('#bv').value);if(isNaN(v))return msg('Enter a buffer size',1);
+ const d=crsDef(getCode($('#bc'),$('#bcc'))),P=proj4('EPSG:4326',d),Q=proj4(d,'EPSG:4326'),m=v*F[$('#bu').value],rd=new jsts.io.GeoJSONReader(),wr=new jsts.io.GeoJSONWriter(),res=[];
+ groups().forEach(g=>{const rings=[g.ext,...g.holes].map(i=>i.ll.map(p=>P.forward(p)));let geo=rd.read({type:'Polygon',coordinates:rings});if(!geo.isValid())geo=geo.buffer(0);
+  const o=geo.buffer(m,8);if(o.isEmpty())return;const j=wr.write(o),ps=j.type=='Polygon'?[j.coordinates]:j.coordinates;ps.forEach(pc=>res.push({src:g.ext,rings:pc.map(r=>r.map(p=>Q.forward(p)))}))});
+ if(!res.length)return msg('That buffer removes the whole boundary.',1);adj=res;buf={m};draw();refresh();msg('Buffer applied')}catch(e){msg(e.message||'Buffer failed',1)}};
+$('#cl').onclick=()=>{adj=null;draw();refresh()};
+// ---- export
+const esc=s=>String(s??'').replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]));
+function wkt(code){const c=+code.replace(/\D/g,''),W='GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+ if(c==4326)return W;if(c==3857)return'PROJCS["WGS_1984_Web_Mercator_Auxiliary_Sphere",'+W+',PROJECTION["Mercator_Auxiliary_Sphere"],PARAMETER["False_Easting",0.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",0.0],PARAMETER["Standard_Parallel_1",0.0],PARAMETER["Auxiliary_Sphere_Type",0.0],UNIT["Meter",1.0]]';
+ let z,s=0,g=W,nm;if(c>=32601&&c<=32660){z=c-32600;nm='WGS_1984_UTM_Zone_'+z+'N'}else if(c>=32701&&c<=32760){z=c-32700;s=1;nm='WGS_1984_UTM_Zone_'+z+'S'}
+ else if((c>=26901&&c<=26923)||(c>=2955&&c<=2962)){z=c>2000&&c<3000?c-2944:c-26900;nm='NAD_1983_UTM_Zone_'+z+'N';g='GEOGCS["GCS_North_American_1983",DATUM["D_North_American_1983",SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]'}else return null;
+ return`PROJCS["${nm}",${g},PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",${s?'10000000.0':'0.0'}],PARAMETER["Central_Meridian",${z*6-183}.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]`}
+const sa=r=>{let s=0;for(let i=0;i<r.length-1;i++)s+=r[i][0]*r[i+1][1]-r[i+1][0]*r[i][1];return s/2};
+function mkShp(feats){const ex=feats.map(f=>f.rings.map((r,i)=>(sa(r)<0)==(i==0)?r:r.slice().reverse())),sz=ex.map(f=>8+44+4*f.length+16*f.reduce((s,r)=>s+r.length,0)),tot=100+sz.reduce((a,b)=>a+b,0),
+ A=new DataView(new ArrayBuffer(tot)),X=new DataView(new ArrayBuffer(100+8*ex.length)),B=ex.flat(2).reduce((b,p)=>[Math.min(b[0],p[0]),Math.min(b[1],p[1]),Math.max(b[2],p[0]),Math.max(b[3],p[1])],[1e99,1e99,-1e99,-1e99]);
+ [[A,tot],[X,100+8*ex.length]].forEach(([v,l])=>{v.setInt32(0,9994);v.setInt32(24,l/2);v.setInt32(28,1000,true);v.setInt32(32,5,true);B.forEach((x,i)=>v.setFloat64(36+8*i,x,true))});
+ let o=100;ex.forEach((rs,k)=>{const np=rs.reduce((s,r)=>s+r.length,0);X.setInt32(100+8*k,o/2);X.setInt32(104+8*k,(sz[k]-8)/2);A.setInt32(o,k+1);A.setInt32(o+4,(sz[k]-8)/2);const c=o+8;A.setInt32(c,5,true);
+  const b=bb(rs.flat());b.forEach((x,i)=>A.setFloat64(c+4+8*i,x,true));A.setInt32(c+36,rs.length,true);A.setInt32(c+40,np,true);let n=0,p=c+44+4*rs.length;
+  rs.forEach((r,i)=>{A.setInt32(c+44+4*i,n,true);r.forEach(q=>{A.setFloat64(p,q[0],true);A.setFloat64(p+8,q[1],true);p+=16});n+=r.length});o+=sz[k]});return[A.buffer,X.buffer]}
+function mkDbf(F_,rows){const en=new TextEncoder(),hl=33+32*F_.length,rl=1+F_.reduce((s,f)=>s+f.len,0),u=new Uint8Array(hl+rl*rows.length+1),v=new DataView(u.buffer),d=new Date();
+ u[0]=3;u[1]=d.getFullYear()-1900;u[2]=d.getMonth()+1;u[3]=d.getDate();v.setUint32(4,rows.length,true);v.setUint16(8,hl,true);v.setUint16(10,rl,true);
+ F_.forEach((f,i)=>{const o=32+32*i;u.set(en.encode(f.name).slice(0,10),o);u[o+11]=f.type.charCodeAt(0);u[o+16]=f.len;u[o+17]=f.dec});u[hl-1]=13;
+ rows.forEach((r,k)=>{let p=hl+k*rl;u[p++]=32;F_.forEach((f,i)=>{const x=r[i];u.fill(32,p,p+f.len);if(f.type=='N'){if(x!=null&&x!=='')u.set(en.encode(Number(x).toFixed(f.dec).padStart(f.len)).slice(0,f.len),p)}else u.set(en.encode(String(x??'')).slice(0,f.len),p);p+=f.len})});u[u.length-1]=26;return u}
+function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4e3)}
+$('#ex').onclick=async()=>{try{if(!adj)return msg('Apply a buffer first',1);const f=$('#fm').value,code=(f=='shp'||f=='gj')?getCode($('#oc'),$('#occ')):'EPSG:4326',bu=$('#bu').value,bv=+(buf.m/F[bu]).toFixed(4),col='Buffer_'+bu;
+ let base=($('#fn').value||'boundary').replace(/[^\w.+\- ]/g,'_');if($('#apn').checked)base+=`_buf${bv>0?'+':''}${bv}${bu}`;
+ const T=code=='EPSG:4326'?null:proj4('EPSG:4326',crsDef(code)),ft=adj.map(a=>({ll:a.rings,rings:T?a.rings.map(r=>r.map(p=>T.forward(p))):a.rings,attrs:{...a.src.attrs,[col]:bv}}));
+ const co=r=>r.map(p=>p[0]+','+p[1]+',0').join(' '),nm=(a,i)=>a.Name||a.NAME||a.name||a.FIELD||a.Field||base+'_'+(i+1);
+ if(f=='gj'){const j={type:'FeatureCollection',...(T?{crs:{type:'name',properties:{name:'urn:ogc:def:crs:'+code.replace(':','::')}}}:{}),features:ft.map(x=>({type:'Feature',properties:x.attrs,geometry:{type:'Polygon',coordinates:x.rings}}))};dl(new Blob([JSON.stringify(j)],{type:'application/geo+json'}),base+'.geojson')}
+ else if(f=='kml'||f=='kmz'){const k='<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>'+esc(base)+'</name>'+ft.map((x,i)=>`<Placemark><name>${esc(nm(x.attrs,i))}</name><ExtendedData>${Object.entries(x.attrs).map(([a,b])=>`<Data name="${esc(a)}"><value>${esc(b)}</value></Data>`).join('')}</ExtendedData><Polygon><outerBoundaryIs><LinearRing><coordinates>${co(x.ll[0])}</coordinates></LinearRing></outerBoundaryIs>${x.ll.slice(1).map(r=>`<innerBoundaryIs><LinearRing><coordinates>${co(r)}</coordinates></LinearRing></innerBoundaryIs>`).join('')}</Polygon></Placemark>`).join('')+'</Document></kml>';
+  if(f=='kml')dl(new Blob([k],{type:'application/vnd.google-earth.kml+xml'}),base+'.kml');else{const z=new JSZip();z.file('doc.kml',k);dl(await z.generateAsync({type:'blob',mimeType:'application/vnd.google-earth.kmz'}),base+'.kmz')}}
+ else if(f=='iso'){const pn=r=>r.map(p=>`<PNT A="2" C="${p[1]}" D="${p[0]}"/>`).join('');
+  const x='<?xml version="1.0" encoding="UTF-8"?>\n<ISO11783_TaskData VersionMajor="4" VersionMinor="1" ManagementSoftwareManufacturer="Field Boundary Buffer" ManagementSoftwareVersion="1.0" DataTransferOrigin="1">\n'+ft.map((q,i)=>{const a=rArea(q.ll[0])-q.ll.slice(1).reduce((s,r)=>s+rArea(r),0),n=esc(nm(q.attrs,i));return`<PFD A="PFD${i+1}" C="${n}" D="${Math.round(a)}"><PLN A="1" B="${n}"><LSG A="1">${pn(q.ll[0])}</LSG>${q.ll.slice(1).map(r=>`<LSG A="2">${pn(r)}</LSG>`).join('')}</PLN></PFD>`}).join('\n')+'\n</ISO11783_TaskData>';
+  const z=new JSZip();z.file('TASKDATA/TASKDATA.XML',x);dl(await z.generateAsync({type:'blob'}),base+'_isoxml.zip')}
+ else{const keys=[...new Set(ft.flatMap(x=>Object.keys(x.attrs).filter(k=>k!=col)))].concat(col),used=new Set(),F_=keys.map(k=>{let n=k.replace(/\W/g,'_').slice(0,10),i=1;while(used.has(n.toLowerCase()))n=n.slice(0,9-String(i).length)+'_'+i++;used.add(n.toLowerCase());
+  const vs=ft.map(x=>x.attrs[k]);if(vs.every(v=>v==null||typeof v=='number'))return{name:n,type:'N',len:k==col?14:18,dec:k==col?4:(vs.every(v=>v==null||Number.isInteger(v))?0:6)};return{name:n,type:'C',len:Math.min(254,Math.max(1,...vs.map(v=>new TextEncoder().encode(String(v??'')).length)))}});
+  const[S,X]=mkShp(ft),z=new JSZip();z.file(base+'.shp',S);z.file(base+'.shx',X);z.file(base+'.dbf',mkDbf(F_,ft.map(x=>keys.map(k=>x.attrs[k]))));z.file(base+'.cpg','UTF-8');const w=wkt(code);if(w)z.file(base+'.prj',w);else msg('No .prj written for this EPSG code (not built in).');
+  dl(await z.generateAsync({type:'blob'}),base+'.zip')}}catch(e){msg(e.message||'Export failed',1)}};
+</script>
+</body>
+</html>

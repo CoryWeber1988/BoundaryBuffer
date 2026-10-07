@@ -1,0 +1,166 @@
+<!--
+Field Boundary Buffer - Help
+Copyright (C) 2026 Cory Weber (Cory Weber Ag Tech). Licensed under the GNU General Public License v3 or later (see LICENSE).
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Boundary Buffer - Help</title>
+<style>
+:root{--bg:#eef1ee;--pn:#fff;--ink:#17261d;--mut:#5d6d63;--ln:#d3dbd5;--ac:#2d6a4f;--a:#c56200}
+@media(prefers-color-scheme:dark){:root{--bg:#121916;--pn:#1b2420;--ink:#e3ebe5;--mut:#9aaba1;--ln:#2f3b35;--ac:#74c69d;--a:#ffa040}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+nav,section{background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:16px 20px;margin:14px 0}
+h1,h2,h3{font-family:Georgia,'Times New Roman',serif;line-height:1.25}
+h1{font-size:30px;margin:.3em 0}h2{font-size:22px;margin:0 0 .4em}h3{font-size:17px;margin:1em 0 .2em}
+a{color:var(--ac)}code{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:.92em}
+table{border-collapse:collapse;width:100%;font-size:14px;display:block;overflow-x:auto}th,td{border:1px solid var(--ln);padding:6px 9px;text-align:left;vertical-align:top}
+.disc{border-left:4px solid var(--a);padding:8px 14px;background:var(--bg);border-radius:4px}
+nav ul{columns:2;margin:0;padding-left:18px}@media(max-width:600px){nav ul{columns:1}}
+</style>
+</head>
+<body><div class="wrap">
+<h1>Field Boundary Buffer: help guide</h1>
+<p><a href="index.html">Open the tool</a></p>
+
+<nav><b>Contents</b><ul>
+<li><a href="#purpose">What the tool does</a></li><li><a href="#quick">Quick start</a></li><li><a href="#disclaimer">Disclaimer</a></li>
+<li><a href="#load">1. Loading a boundary</a></li><li><a href="#crs">Projection of the source file</a></li><li><a href="#units">2. Units</a></li>
+<li><a href="#poly">3. Polygons and area</a></li><li><a href="#buffer">4. Buffer</a></li><li><a href="#export">5. Export</a></li>
+<li><a href="#map">The map</a></li><li><a href="#reset">Resets and reusing settings</a></li><li><a href="#ui">Sidebar, mobile and themes</a></li>
+<li><a href="#limits">Limits and accuracy</a></li><li><a href="#trouble">Troubleshooting</a></li><li><a href="#about">About, license and credits</a></li></ul></nav>
+
+<section id="purpose"><h2>What the tool does</h2>
+<p>Field Boundary Buffer reads an existing field boundary and creates a new polygon that is physically larger or smaller than the original. Recorded boundaries often leave too little room inside for different machines, because equipment has physical dimensions outside its working area (turning, headlands, trailing implements, obstacles). The adjusted boundary lets you plan for that clearance.</p>
+<p>Boundaries can have exterior polygons (the field edge) and interior polygons (holes such as wetlands, buildings or rock piles). The tool handles both together. The original and adjusted outlines are shown on the map at the same time, and the adjusted result can be exported in several formats with the original attributes preserved.</p>
+<p>Everything runs in your browser. Your files are not uploaded anywhere. An internet connection is needed to load the map tiles and the supporting libraries.</p></section>
+
+<section id="quick"><h2>Quick start</h2>
+<ol><li>Read the disclaimer on the landing page and choose <b>I accept</b>.</li>
+<li>Load a boundary file (step 1). The map zooms to it.</li>
+<li>Check the polygon list (step 3). Fix any polygon whose exterior/interior type is wrong.</li>
+<li>Enter a buffer size (step 4). Use a negative number to shrink the field, positive to grow it. Leave the projection on the recommended UTM zone.</li>
+<li>Click <b>Apply buffer</b>. The adjusted boundary appears in orange over the original in blue. Check it against the imagery.</li>
+<li>Name the file and choose a format (step 5), then click <b>Export adjusted boundary</b>.</li></ol></section>
+
+<section id="disclaimer"><h2>Disclaimer</h2>
+<div class="disc"><p>You are responsible for the accuracy of any output file created with this tool and for verifying that it does not cross any obstacles. Using this tool means you assume all responsibility and liability for its accuracy and for any issues that occur from using the tool and its exported files. The developer assumes and accepts no responsibility or liability.</p>
+<p>The original boundary's accuracy may not be perfectly preserved by this process. Check your file's attributes for anything that indicates the source recording GPS accuracy (for example fix type, HDOP, number of satellites, or differential correction source). A buffered boundary is never more accurate than the boundary it came from.</p>
+<p>This software is provided under the GNU General Public License v3 or later, without warranty of any kind, express or implied, including merchantability and fitness for a particular purpose. Always check outputs in your own equipment and software before field use.</p></div></section>
+
+<section id="load"><h2>1. Loading a boundary</h2>
+<table><tr><th>Format</th><th>How to load</th></tr>
+<tr><td>Shapefile</td><td>Select a <code>.zip</code> containing the shapefile, or select the <code>.shp</code>, <code>.dbf</code> and <code>.prj</code> together (the <code>.shx</code> can be included but is not needed). Only polygon shapefiles are read.</td></tr>
+<tr><td>KML</td><td>Select the <code>.kml</code> file. Polygon outer and inner boundaries are read.</td></tr>
+<tr><td>KMZ</td><td>Select the <code>.kmz</code> file. The KML inside is read.</td></tr></table>
+<p>You can also drag and drop files onto the map. Each ring in the file becomes one polygon in the list, and each keeps the attributes of the feature it came from (shapefile columns, or KML name, description and extended data).</p>
+<p>If a shapefile has no attribute table, the output simply contains the buffer column. If you select several shapefiles at once, they are combined, and the first projection found is used for all.</p>
+<p>Loading a new file replaces the current boundary and the applied buffer. Your buffer size, units, projections and export settings are kept (see <a href="#reset">Resets</a>).</p></section>
+
+<section id="crs"><h2>Projection of the source file</h2>
+<ul><li><b>Automatic:</b> if a <code>.prj</code> is present, it is read and the status line under the file box shows what was detected. KML and KMZ are always WGS 84.</li>
+<li><b>No .prj:</b> if the coordinates look like longitude/latitude, WGS 84 is assumed and the status line says so. Otherwise the tool asks you to assign a projection and shows nothing until you do.</li>
+<li><b>Manual:</b> type an EPSG code or a proj4 string in the box and click <b>Assign</b>. This works at any time, including to override a wrong automatic detection. Built-in EPSG codes: 4326, 3857, WGS 84 UTM (32601-32660, 32701-32760), NAD83 UTM (26901-26923) and NAD83(CSRS) UTM zones 11-18 (2955-2962). For anything else, paste a proj4 string such as <code>+proj=utm +zone=17 +datum=NAD83 +units=m +no_defs</code>.</li></ul>
+<p>If the coordinates do not fit the chosen projection (for example they land outside valid latitudes), the tool tells you and you can assign another.</p></section>
+
+<section id="units"><h2>2. Units</h2>
+<p>Choose <b>Imperial</b> (acres, feet and inches) or <b>Metric</b> (hectares, metres and centimetres). The default is imperial. The same choice is on the landing page and in the sidebar, and they stay in sync. Changing it updates every area immediately. The buffer size you typed is converted so it keeps the same physical distance (ft becomes m and in becomes cm, and the reverse).</p></section>
+
+<section id="poly"><h2>3. Polygons and area</h2>
+<h3>The list</h3>
+<p>Each polygon shows its number, area and a drop-down to set it as Exterior or Interior. Click a row to zoom to that polygon. Exterior polygons are drawn with solid lines and interior polygons with dashed lines.</p>
+<h3>Automatic exterior and interior</h3>
+<ul><li>A polygon with nothing around it is exterior.</li>
+<li>A polygon inside another polygon is interior.</li>
+<li>A polygon inside an interior polygon (an island inside a hole) is exterior again, and so on, alternating with each level.</li></ul>
+<p>Use the drop-down to override any polygon. An interior polygon belongs to the smallest exterior polygon that contains it. An interior polygon with no exterior polygon around it cannot be used and is marked <em>no parent, ignored</em>.</p>
+<h3>Totals</h3>
+<table><tr><th>Line</th><th>Meaning</th></tr>
+<tr><td>Exterior total</td><td>Sum of exterior polygon areas.</td></tr>
+<tr><td>Interior total (subtracted)</td><td>Sum of interior polygon areas that belong to an exterior polygon.</td></tr>
+<tr><td>Net area (original)</td><td>Exterior total minus interior total. This is the number to use as the field area.</td></tr>
+<tr><td>Net area (adjusted)</td><td>Same calculation on the buffered result, shown after you apply a buffer.</td></tr>
+<tr><td>Change</td><td>Adjusted minus original, with the percent change.</td></tr></table>
+<p>Areas are calculated on a spherical earth model from the WGS 84 coordinates. They can differ slightly (a small fraction of a percent) from ellipsoidal values in desktop GIS software.</p>
+<p>Changing a polygon's type clears any applied buffer, because the result no longer matches. Apply the buffer again.</p></section>
+
+<section id="buffer"><h2>4. Buffer</h2>
+<h3>Size and direction</h3>
+<p>Enter a number and pick a unit. Units follow the tool's unit system: feet or inches for imperial, metres or centimetres for metric. The value is applied to the field as a whole:</p>
+<table><tr><th>Entry</th><th>Exterior boundary</th><th>Interior polygons</th></tr>
+<tr><td>Positive (for example 10)</td><td>Moves outward (field gets bigger)</td><td>Shrink</td></tr>
+<tr><td>Negative (for example -10)</td><td>Moves inward (field gets smaller)</td><td>Grow</td></tr></table>
+<p>A negative buffer is usually the choice for equipment clearance: the working area pulls in from the edge and keeps farther away from obstacles. Corners that are rounded off by a growing buffer stay sharp on a shrinking one. Very narrow parts of a polygon can disappear when shrinking, and an interior polygon can merge with the boundary or with another one. If the buffer removes the whole boundary, the tool tells you and keeps the previous result.</p>
+<h3>Buffer projection</h3>
+<p>The polygons are re-projected to a flat, metre-based projection before buffering and then converted back. The default is the recommended UTM zone for the middle of your boundary, which keeps distances accurate to well under 0.1%. The list also offers:</p>
+<ul><li><b>NAD83 UTM zone</b> for the same area when you work in North America.</li>
+<li><b>Web Mercator (EPSG:3857)</b>, which stretches distances away from the equator. At Ontario latitudes that is around 35%, so a 10 ft buffer would measure about 7 ft on the ground. A warning with the figure for your location is shown when it is selected, with a button to switch back to the recommended UTM zone.</li>
+<li><b>Custom EPSG</b> for any code from the built-in list in the projection section above.</li></ul>
+<p>For a boundary that spans two UTM zones the recommended zone is the one containing its centre. Very large areas are better served by a custom projection.</p>
+<h3>Apply and clear</h3>
+<p><b>Apply buffer</b> creates the adjusted boundary in orange over the original in blue and updates the adjusted area and change. Changing the size and applying again replaces the previous result. <b>Clear</b> removes the adjusted boundary and keeps your settings.</p></section>
+
+<section id="export"><h2>5. Export</h2>
+<h3>File name</h3>
+<p>Type a name without the extension. With <b>Append buffer size to file name</b> checked, the buffer is added to the name, for example <code>north_field_buf-10ft</code> or <code>north_field_buf+3m</code>. The box is filled with the name of the loaded file.</p>
+<h3>Formats</h3>
+<table><tr><th>Format</th><th>Output</th><th>Notes</th></tr>
+<tr><td>Shapefile (default)</td><td><code>.zip</code> with <code>.shp .shx .dbf .prj .cpg</code></td><td>Follows the output projection. Text is UTF-8. A <code>.prj</code> is written for the built-in EPSG codes only. Column names are limited to 10 characters, so long names are shortened and made unique.</td></tr>
+<tr><td>KML</td><td><code>.kml</code></td><td>Always WGS 84. Attributes are written as extended data.</td></tr>
+<tr><td>KMZ</td><td><code>.kmz</code></td><td>The same KML, zipped.</td></tr>
+<tr><td>GeoJSON</td><td><code>.geojson</code></td><td>Follows the output projection. A coordinate system entry is added when it is not WGS 84.</td></tr>
+<tr><td>ISOXML</td><td><code>.zip</code> containing <code>TASKDATA/TASKDATA.XML</code></td><td>Always WGS 84. One field per output polygon with a boundary (exterior ring plus interior rings) and its area. This is a minimal boundary-only file. Test it in your display or software before relying on it.</td></tr></table>
+<h3>Output projection</h3>
+<p>The default is WGS 84 (EPSG:4326). You can switch to Web Mercator, the recommended UTM zone, NAD83 UTM or a custom EPSG code from the built-in list. It applies to shapefile and GeoJSON; the other formats always use WGS 84.</p>
+<h3>Attributes and the buffer column</h3>
+<p>Every attribute column from the original file is carried to the output. An added column named <code>Buffer_ft</code>, <code>Buffer_in</code>, <code>Buffer_cm</code> or <code>Buffer_m</code> (matching the unit you are using) holds the signed adjustment, positive for growth and negative for shrinkage. Each output feature takes the attributes of the exterior polygon it was made from. Attributes of interior polygons are not carried. If shrinking splits a polygon into several parts, each part becomes its own feature with the same attributes.</p>
+<p>The buffer value written is the one last applied, shown in the unit currently selected. If you change the buffer entry after applying, apply again before exporting.</p></section>
+
+<section id="map"><h2>The map</h2>
+<p>Use the layer button on the map to choose a background and turn overlays on and off.</p>
+<ul><li><b>Backgrounds:</b> Esri World Imagery (default), Esri Streets, Esri Topographic, OpenStreetMap, OpenTopoMap and USGS Imagery (United States coverage only).</li>
+<li><b>Overlays:</b> Original boundary, Adjusted boundary and Place labels.</li></ul>
+<p>Hover over or tap a polygon to see its number, type and area. Imagery resolution and date vary by location. Check how current the imagery is before judging a boundary against it. Background tiles come from third-party servers and are subject to their terms of use.</p></section>
+
+<section id="reset"><h2>Resets and reusing settings</h2>
+<table><tr><th>Button</th><th>What it does</th></tr>
+<tr><td>Reset step 1</td><td>Unloads the file and clears the projection status.</td></tr>
+<tr><td>Reset step 2</td><td>Returns to imperial units.</td></tr>
+<tr><td>Reset step 3</td><td>Puts every polygon back to its automatic type and clears the applied buffer.</td></tr>
+<tr><td>Reset step 4</td><td>Buffer back to -10 ft (or -10 m in metric), recommended UTM zone, applied buffer cleared.</td></tr>
+<tr><td>Reset step 5</td><td>File name from the loaded file, append size on, shapefile format, EPSG:4326 output.</td></tr>
+<tr><td>Reset session (top bar)</td><td>After a confirmation, clears the file and every setting and returns the map to its starting view.</td></tr></table>
+<p><b>Processing several boundaries with the same settings:</b> set the buffer, projections and export options once, apply and export, then simply load the next file. Your settings stay in place. Click <b>Apply buffer</b> again for each new boundary, since the result is specific to a file. The file name updates to match each new file.</p></section>
+
+<section id="ui"><h2>Sidebar, mobile and themes</h2>
+<ul><li><b>Panel</b> button hides or shows the sidebar. The sidebar scrolls, and each step can be collapsed. On a phone it opens over the map and starts hidden after a file loads so the map is visible.</li>
+<li><b>Dark / Light</b> switches the theme. The choice is remembered by your browser.</li>
+<li>The tool works on desktop and mobile browsers. On a phone, use the Panel button to move between the map and the settings.</li></ul></section>
+
+<section id="limits"><h2>Limits and accuracy</h2>
+<ul><li>Only polygons are read. Lines, points and multi-layer files are not supported.</li>
+<li>Buffering uses rounded corners and straight offsets. It does not know about the shape of any machine, so check the result against your equipment and obstacles.</li>
+<li>Invalid polygons (for example edges that cross themselves) are repaired before buffering, which can change their shape slightly.</li>
+<li>The result is only as good as the source boundary. Original GPS error, gaps and spikes remain.</li>
+<li>Reading is done in the browser. Very large files with many thousands of vertices or polygons can be slow.</li>
+<li>Source files with elevation or measure values are read in 2D only. Those values are not written to the output.</li></ul></section>
+
+<section id="trouble"><h2>Troubleshooting</h2>
+<table><tr><th>Problem</th><th>What to try</th></tr>
+<tr><td>Map is grey or the tool says libraries are missing</td><td>Check your internet connection. The map and libraries load from the internet.</td></tr>
+<tr><td>"No polygons found"</td><td>Select the <code>.shp</code> with its <code>.dbf</code>/<code>.prj</code> together, or use a <code>.zip</code>. Confirm it is a polygon file.</td></tr>
+<tr><td>Boundary appears in the wrong place or not at all</td><td>The projection was not detected correctly. Assign the right EPSG code or proj4 string in step 1.</td></tr>
+<tr><td>A hole is not subtracted from the area</td><td>It is marked as exterior, or it has no exterior polygon around it. Set it to Interior in the list.</td></tr>
+<tr><td>The buffer looks smaller than entered</td><td>Check the buffer projection. Web Mercator shrinks real-world distances at northern latitudes. Use the recommended UTM zone.</td></tr>
+<tr><td>The imported file does not open elsewhere</td><td>For shapefiles, unzip first if the software does not read zips. For ISOXML, confirm which folder layout your display expects.</td></tr>
+<tr><td>No <code>.prj</code> in the exported shapefile</td><td>The output EPSG code is not one of the built-in codes. Choose a built-in output projection.</td></tr></table></section>
+
+<section id="about"><h2>About, license and credits</h2>
+<p>Field Boundary Buffer is free software released under the <a href="LICENSE">GNU General Public License v3 or later</a>. You may use, study, share and modify it under the terms of that license. It comes with no warranty.</p>
+<p>Developed by Cory Weber, Cory Weber Ag Tech, Ontario, Canada, and built with Claude (Anthropic). Contact: <a href="mailto:coryweber1988@gmail.com">coryweber1988@gmail.com</a></p>
+<p>Third-party libraries, loaded from public CDNs and not modified: <a href="https://leafletjs.com">Leaflet</a> (BSD-2-Clause), <a href="https://proj4js.org">proj4js</a> (MIT), <a href="https://stuk.github.io/jszip/">JSZip</a> (MIT or GPLv3) and <a href="https://github.com/bjornharrtell/jsts">JSTS</a> (Eclipse Public License 2.0 / Eclipse Distribution License 1.0). Map data and imagery are provided by Esri, OpenStreetMap contributors, OpenTopoMap and the USGS under their own terms.</p></section>
+</div></body></html>
